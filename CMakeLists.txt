@@ -9,5 +9,9 @@ find_package(CURL REQUIRED)
 # Include CURL headers
 include_directories(${CURL_INCLUDE_DIRS})
 
+# Include libtidy headers
+include_directories(/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include)
+
+# Link libtidy
 add_executable(Search_Engine main.c)
-target_link_libraries(Search_Engine ${CURL_LIBRARIES})
+target_link_libraries(Search_Engine ${CURL_LIBRARIES} /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/lib/libtidy.tbd)

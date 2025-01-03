@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <stdlib.h>
-#include <string.h>
+#include <tidy/tidy.h>
+#include <tidy/buffio.h>
 
 typedef struct
 {
@@ -10,10 +11,17 @@ typedef struct
 } Response;
 
 size_t write_chunk(void *data, size_t size, size_t nmemb, void *userdata);
+void parse_html_data(TidyNode tnode);
 
 int main(void)
 {
+    const TidyDoc tidy_doc = tidyCreate();
     CURL *curl = curl_easy_init();
+    TidyBuffer errbuf = {0};
+
+    tidyOptSetBool(tidy_doc, TidyQuiet, yes);
+    tidyOptSetBool(tidy_doc, TidyShowWarnings, no);
+    tidySetErrorBuffer(tidy_doc, &errbuf);
 
     if (curl == NULL)
     {
@@ -37,11 +45,22 @@ int main(void)
         return -1;
     }
 
-    printf("%s\n", response.string);
+    int rc = tidyParseString(tidy_doc, response.string);
+    if (rc >= 0) {
+        rc = tidyCleanAndRepair(tidy_doc);
+        if (rc >= 0) {
+            const TidyNode root = tidyGetRoot(tidy_doc);
+            parse_html_data(root);
+        }
+    }
+
+    //printf("%s\n", response.string);
 
     curl_easy_cleanup(curl);
-
+    tidyBufFree(&errbuf);
+    tidyRelease(tidy_doc);
     free(response.string);
+
     return 0;
 }
 
@@ -65,4 +84,23 @@ size_t write_chunk(void *data, size_t size, size_t nmemb, void *userdata)
     response->string[response->size] = '\0';
 
     return real_size;
+}
+
+void parse_html_data(const TidyNode tnode)
+{
+    for (TidyNode child = tidyGetChild(tnode); child; child = tidyGetNext(child)) {
+        const TidyTagId tag_id = tidyNodeGetId(child);
+
+        if (tag_id == TidyTag_A) {
+            const TidyAttr href_attr = tidyAttrGetById(child, TidyAttr_HREF);
+            if (href_attr) {
+                const char *url = tidyAttrValue(href_attr);
+                if (url && strstr(url, "http") != NULL) {
+                    printf("Found URL: %s\n", url);
+                }
+            }
+        }
+
+        parse_html_data(child);
+    }
 }
