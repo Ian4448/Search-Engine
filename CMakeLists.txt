@@ -13,8 +13,10 @@ include_directories(${CURL_INCLUDE_DIRS})
 include_directories(/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include)
 
 # Link libtidy
-add_executable(Search_Engine main.c
-        hash_set.c
-        main.h
-        hash_set.h)
+add_executable(Search_Engine src/main.c
+        src/util/hash_set.c
+        src/main.h
+        src/util/hash_set.h
+        src/util/queue.c
+        src/util/queue.h)
 target_link_libraries(Search_Engine ${CURL_LIBRARIES} /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/lib/libtidy.tbd)
