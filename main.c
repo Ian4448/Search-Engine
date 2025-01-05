@@ -1,20 +1,9 @@
-#include <stdio.h>
-#include <curl/curl.h>
-#include <stdlib.h>
-#include <tidy/tidy.h>
-#include <tidy/buffio.h>
-
-typedef struct
-{
-    char *string;
-    size_t size;
-} Response;
-
-size_t write_chunk(void *data, size_t size, size_t nmemb, void *userdata);
-void parse_html_data(TidyNode tnode);
+#include "main.h"
+#include "hash_set.h"
 
 int main(void)
 {
+    Set *set = hash_set_init();
     const TidyDoc tidy_doc = tidyCreate();
     CURL *curl = curl_easy_init();
     TidyBuffer errbuf = {0};
@@ -50,16 +39,18 @@ int main(void)
         rc = tidyCleanAndRepair(tidy_doc);
         if (rc >= 0) {
             const TidyNode root = tidyGetRoot(tidy_doc);
-            parse_html_data(root);
+            parse_html_data(set, root);
         }
     }
 
     //printf("%s\n", response.string);
+    hash_set_display(set);
 
     curl_easy_cleanup(curl);
     tidyBufFree(&errbuf);
     tidyRelease(tidy_doc);
     free(response.string);
+    hash_set_free(set);
 
     return 0;
 }
@@ -74,7 +65,7 @@ size_t write_chunk(void *data, size_t size, size_t nmemb, void *userdata)
 
     if (ptr == NULL)
     {
-        fprintf("Write Chunk Failed", stderr);
+        fprintf("Write Data Chunk Failed", stderr);
         return CURL_WRITEFUNC_ERROR;
     }
 
@@ -86,7 +77,7 @@ size_t write_chunk(void *data, size_t size, size_t nmemb, void *userdata)
     return real_size;
 }
 
-void parse_html_data(const TidyNode tnode)
+void parse_html_data(Set *set, const TidyNode tnode)
 {
     for (TidyNode child = tidyGetChild(tnode); child; child = tidyGetNext(child)) {
         const TidyTagId tag_id = tidyNodeGetId(child);
@@ -95,12 +86,13 @@ void parse_html_data(const TidyNode tnode)
             const TidyAttr href_attr = tidyAttrGetById(child, TidyAttr_HREF);
             if (href_attr) {
                 const char *url = tidyAttrValue(href_attr);
-                if (url && strstr(url, "http") != NULL) {
-                    printf("Found URL: %s\n", url);
+                if (url && strstr(url, "http") != NULL && !hash_set_contains(set, url)) {
+                    //printf("Found URL: %s\n", url);
+                    hash_set_add(set, url);
                 }
             }
         }
 
-        parse_html_data(child);
+        parse_html_data(set, child);
     }
 }
