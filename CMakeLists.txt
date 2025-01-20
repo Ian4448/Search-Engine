@@ -18,5 +18,7 @@ add_executable(Search_Engine src/main.c
         src/main.h
         src/util/hash_set.h
         src/util/queue.c
-        src/util/queue.h)
+        src/util/queue.h
+        src/web_crawler.h
+        src/web_crawler.c)
 target_link_libraries(Search_Engine ${CURL_LIBRARIES} /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/lib/libtidy.tbd)
