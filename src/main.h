@@ -6,6 +6,4 @@
 #include "util/queue.h"
 #include "web_crawler.h"
 
-#define MAXIMUM_DEPTH 1
-
 #endif // MAIN_H

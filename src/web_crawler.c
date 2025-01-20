@@ -1,9 +1,5 @@
 #include "web_crawler.h"
 
-#include <stdbool.h>
-
-#include "pthread/pthread.h"
-
 pthread_mutex_t queue_mutex;
 pthread_mutex_t set_mutex;
 pthread_cond_t queue_cond;
@@ -16,6 +12,14 @@ void *thread_function(void *arg)
         fprintf(stderr, "Libcurl Initialization Failed");
         pthread_exit(NULL);
     }
+
+    TidyDoc thread_tidy_doc = tidyCreate();
+    TidyBuffer errbuf = {0};
+
+    // Config
+    tidyOptSetBool(thread_tidy_doc, TidyQuiet, yes);
+    tidyOptSetBool(thread_tidy_doc, TidyShowWarnings, no);
+    tidySetErrorBuffer(thread_tidy_doc, &errbuf);
 
     while (true) {
         pthread_mutex_lock(&queue_mutex);
@@ -49,12 +53,12 @@ void *thread_function(void *arg)
 
         const CURLcode result = curl_easy_perform(curl);
         if (result == CURLE_OK) {
-            tidyParseString(args->tidy_doc, args->response->string);
+            tidyParseString(thread_tidy_doc, args->response->string);
 
             pthread_mutex_lock(&queue_mutex);
             pthread_mutex_lock(&set_mutex);
 
-            parse_html_data(args->queue, args->set, tidyGetRoot(args->tidy_doc), args->c_depth);
+            parse_html_data(args->queue, args->set, tidyGetRoot(thread_tidy_doc), args->c_depth);
 
             pthread_mutex_unlock(&set_mutex);
             pthread_mutex_unlock(&queue_mutex);
@@ -74,11 +78,13 @@ void *thread_function(void *arg)
         }
         pthread_mutex_unlock(&queue_mutex);
     }
+    tidyBufFree(&errbuf);
+    tidyRelease(thread_tidy_doc);
     curl_easy_cleanup(curl);
     return NULL;
 }
 
-double run_crawler(Set *set, Queue *queue, TidyDoc tidy_doc, CURL *curl)
+double run_crawler(Set *set, Queue *queue)
 {
     CrawlerDepthData c_depth = {0, 1, 0};
     queue_enqueue(queue, "https://www.google.com");
@@ -93,7 +99,6 @@ double run_crawler(Set *set, Queue *queue, TidyDoc tidy_doc, CURL *curl)
     for (int i = 0; i < NUM_OF_THREADS; i++) {
         thread_args[i].set = set;
         thread_args[i].queue = queue;
-        thread_args[i].tidy_doc = tidy_doc;
         thread_args[i].c_depth = &c_depth;
 
         thread_args[i].response = malloc(sizeof(Response));
@@ -106,10 +111,12 @@ double run_crawler(Set *set, Queue *queue, TidyDoc tidy_doc, CURL *curl)
 
     for (int i = 0; i < NUM_OF_THREADS; i++) {
         pthread_join(threads[i], NULL);
-        printf("joined thread %d", i);
-    }
+        printf("Joined thread %d\n", i);
 
-    // free thread data
+
+        free(thread_args[i].response->string);
+        free(thread_args[i].response);
+    }
 
     const time_t end = time(NULL);
     const double total_search_time = difftime(end, start);

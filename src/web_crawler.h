@@ -10,9 +10,12 @@
 #include <string.h>
 #include <time.h>
 #include <pthread/pthread.h>
+#include <stdbool.h>
+#include "pthread/pthread.h"
 
 #define TRUE 1
 #define NUM_OF_THREADS 8
+#define MAXIMUM_DEPTH 1
 
 /* Type for storing the HTTP response */
 typedef struct
@@ -33,7 +36,6 @@ typedef struct
 typedef struct {
     Set *set;
     Queue *queue;
-    TidyDoc tidy_doc;
     CrawlerDepthData *c_depth;
     Response *response;
 } ThreadArgs;
@@ -44,7 +46,7 @@ extern pthread_mutex_t set_mutex;
 extern pthread_cond_t queue_cond;
 
 /* Function declarations */
-double run_crawler(Set *set, Queue *queue, TidyDoc tidy_doc, CURL *curl);
+double run_crawler(Set *set, Queue *queue);
 static size_t write_chunk(void *data, size_t size, size_t nmemb, void *userdata);
 static void parse_html_data(Queue *queue, Set *set, const TidyNode tnode, CrawlerDepthData *c_depth);
 void *thread_function(void *arg);
