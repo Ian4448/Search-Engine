@@ -12,7 +12,13 @@ include_directories(${CURL_INCLUDE_DIRS})
 # Include libtidy headers
 include_directories(/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include)
 
-# Link libtidy
+# Find SQLite3
+find_package(SQLite3 REQUIRED)
+
+# Include SQLite headers
+include_directories(${SQLite3_INCLUDE_DIRS})
+
+# Link SQLite3 and libtidy
 add_executable(Search_Engine src/main.c
         src/util/hash_set.c
         src/main.h
@@ -21,4 +27,4 @@ add_executable(Search_Engine src/main.c
         src/util/queue.h
         src/web_crawler.h
         src/web_crawler.c)
-target_link_libraries(Search_Engine ${CURL_LIBRARIES} /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/lib/libtidy.tbd)
+target_link_libraries(Search_Engine ${CURL_LIBRARIES} ${SQLite3_LIBRARIES} /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/lib/libtidy.tbd)
