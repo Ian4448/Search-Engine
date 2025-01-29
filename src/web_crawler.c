@@ -217,7 +217,7 @@ static void parse_html_data(Queue *queue, Set *set, TidyNode tnode, CrawlerDepth
 
     TidyBuffer content = {0};
     TidyBuffer title_buf = {0};
-    char *title = NULL;
+    static char *title = NULL;
 
     for (TidyNode child = tidyGetChild(tnode); child; child = tidyGetNext(child)) {
         const TidyTagId tag_id = tidyNodeGetId(child);
